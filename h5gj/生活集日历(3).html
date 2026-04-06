@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- PWA 必须 meta -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="黄历查询">
+<link rel="apple-touch-icon" href="https://picsum.photos/180/180">
+<!-- 清单文件（简化版） -->
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi5Yqo5Y6f5pel5Lq65p2wIiwic2hvcnRfbmFtZSI6IuWKqOWOn+aXpOS6uuadnyIsImljb25zIjpbeyJzcmMiOiJodHRwczovL3BpY3N1bS5waG90b3MvMTkyLzE5MiIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifSx7InNyYyI6Imh0dHBzOi8vcGljc3VtLnBob3Rvc181LzUxMi81MTIiLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dLCJzdGFydF91cmwiOiIvc2VsZiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwidGhlbWVfY29sb3IiOiIjMjU2M2ViIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYifQ==">
+
+<title>传统黄历 · 时辰生肖查询</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif}
+  body{background:#f7f8fa;padding:20px;max-width:420px;margin:0 auto;color:#1f2937}
+
+  .calendar{background:#fff;border-radius:20px;padding:24px 20px;box-shadow:0 8px 30px rgba(0,0,0,0.06);margin-bottom:20px}
+  .calendar-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .nav-btn{width:40px;height:40px;border-radius:50%;border:none;background:#f1f5f9;color:#1f2937;font-size:18px;cursor:pointer}
+  .title-group{text-align:center}
+  .solar-title{font-size:20px;font-weight:700;color:#111827}
+  .lunar-title{font-size:14px;color:#64748b;margin-top:4px}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:#64748b;font-size:14px;margin-bottom:12px}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .day{min-height:64px;padding:8px 4px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;cursor:pointer}
+  .day:hover{background:#eff6ff}
+  .day.today{background:#dbeafe}
+  .day.other{color:#cbd5e1}
+  .day-num{font-size:16px;font-weight:600;width:28px;height:28px;line-height:28px;text-align:center}
+  .day.today .day-num{background:#2563eb;color:#fff;border-radius:50%}
+  .day-info{font-size:11px;margin-top:4px;text-align:center;white-space:nowrap}
+  .day-icon{font-size:14px;margin-top:2px}
+  .festival-text{color:#ef4444;font-weight:600}
+  .term-text{color:#f97316;font-weight:500}
+  .lunar-text{color:#475569}
+  .month-title{color:#2563eb;font-weight:700}
+  .tip-text{text-align:center;font-size:12px;color:#999;margin-top:12px;line-height:1.5}
+
+  /* 新增：添加到桌面按钮 */
+  .add-to-home{margin:0 auto 20px;text-align:center}
+  .add-btn{background:#2563eb;color:#fff;border:none;border-radius:16px;padding:14px 24px;font-size:16px;font-weight:600;cursor:pointer;width:100%}
+  .add-tip{font-size:12px;color:#999;margin-top:8px}
+
+  .mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:99;display:none}
+  .mask.show{display:block}
+  .panel{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:32px 24px;box-shadow:0 -8px 30px rgba(0,0,0,0.1);z-index:100;transform:translateY(100%);transition:all 0.3s ease;max-height:90vh;overflow-y:auto}
+  .panel.show{transform:translateY(0)}
+  .panel-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:24px;color:#111827}
+  .form-row{margin-bottom:16px}
+  .form-label{font-size:15px;color:#374551;margin-bottom:8px;display:block}
+  .form-select{width:100%;padding:14px 16px;border-radius:14px;border:1px solid #e5e7eb;font-size:16px;background:#f9fafb}
+  .btn-submit{width:100%;padding:16px;background:#2563eb;color:#fff;border:none;border-radius:16px;font-size:17px;font-weight:600;margin-top:12px;cursor:pointer}
+  .result{margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb;font-size:15px;line-height:1.8;color:#1f2937}
+  .result strong{color:#111827;font-size:16px}
+
+  .almanac{margin-top:20px;padding-top:20px;border-top:1px solid #e5e7eb}
+  .almanac .item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6}
+  .almanac .label{color:#64748b;font-size:16px}
+  .almanac .value{font-weight:600;color:#1f2937;font-size:16px}
+  .almanac .explain-tag{font-size:12px;color:#2563eb;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:8px}
+  .yi-ji{margin-top:20px}
+  .yi-ji-title{font-size:16px;font-weight:600;margin-bottom:10px;color:#111827}
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .tag{padding:6px 12px;border-radius:12px;font-size:13px;font-weight:500}
+  .tag.yi{background:#dcfce7;color:#166534}
+  .tag.ji{background:#fee2e2;color:#991b1b}
+
+  /* iOS 引导浮层 */
+  .ios-guide{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:16px;border-top:1px solid #eee;z-index:200;display:none}
+  .ios-guide p{font-size:14px;color:#333;margin-bottom:8px}
+  .ios-guide .share-icon{width:20px;height:20px;vertical-align:middle;margin:0 4px}
+  .ios-guide .close{position:absolute;top:12px;right:16px;font-size:20px;color:#999;background:none;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="calendar">
+  <div class="calendar-head">
+    <button class="nav-btn" onclick="prevMonth()">&lt;</button>
+    <div class="title-group">
+      <div class="solar-title" id="solarTitle"></div>
+      <div class="lunar-title" id="lunarTitle"></div>
+    </div>
+    <button class="nav-btn" onclick="nextMonth()">&gt;</button>
+  </div>
+  <div class="week">
+    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+  </div>
+  <div class="days" id="daysGrid"></div>
+  <div class="tip-text">温馨提示：点击日期查询黄历，内容仅供参考</div>
+</div>
+
+<!-- iOS 引导层 -->
+<div class="ios-guide" id="iosGuide">
+  <button class="close" onclick="closeIosGuide()">×</button>
+  <p>👉 请点 Safari 底部 <img class="share-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJMMTAgNCAxNCA2IDEyIDhNCAxMkM0IDkuOkg2LjZDNi42IDEyIDQgMTQuMiA0IDEyTTE4IDEyQzE4IDE0LjIgMTUuNCAxMiAxNS40IDEyQzE1LjQgMTIgMTggOS44IDE4IDEyTTEyIDIyQzEyIDE5LjggOS40IDIyIDkuNDIyQzkuNDIyIDEyIDI0LjIgMTIgMjJNMTEgMTFWMThIMTlWMTFIMTFaIi8+PC9zdmc+"/> → 「添加到主屏幕」</p>
+  <p>即可在桌面生成独立图标，一键打开黄历</p>
+</div>
+
+<div class="mask" id="mask" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-title" id="panelTitle">日期时辰查询</div>
+  
+  <div class="form-row">
+    <label class="form-label">出生生肖</label>
+    <select class="form-select" id="selSx">
+      <option value="鼠">鼠</option><option value="牛">牛</option><option value="虎">虎</option><option value="兔">兔</option>
+      <option value="龙">龙</option><option value="蛇">蛇</option><option value="马">马</option><option value="羊">羊</option>
+      <option value="猴">猴</option><option value="鸡">鸡</option><option value="狗">狗</option><option value="猪">猪</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">出生时辰</label>
+    <select class="form-select" id="selSc">
+      <option value="子">子时 23:00-01:00</option><option value="丑">丑时 01:00-03:00</option>
+      <option value="寅">寅时 03:00-05:00</option><option value="卯">卯时 05:00-07:00</option>
+      <option value="辰">辰时 07:00-09:00</option><option value="巳">巳时 09:00-11:00</option>
+      <option value="午">午时 11:00-13:00</option><option value="未">未时 13:00-15:00</option>
+      <option value="申">申时 15:00-17:00</option><option value="酉">酉时 17:00-19:00</option>
+      <option value="戌">戌时 19:00-21:00</option><option value="亥">亥时 21:00-23:00</option>
+    </select>
+  </div>
+
+  <button class="btn-submit" onclick="doQuery()">确定查询</button>
+  <div class="result" id="result"></div>
+  <div class="almanac" id="almanac"></div>
+</div>
+
+<!-- 按钮移到最底部 -->
+<div class="add-to-home" style="margin-top:30px;">
+  <button class="add-btn" onclick="showAddGuide()">📌 一键添加到手机桌面</button>
+  <div class="add-tip">添加后可像App一样独立打开，全屏使用</div>
+</div>
+
+<script>
+// ================== 基础数据 ==================
+const TIANGAN = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const DIZHI   = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const SHENGXIAO = ["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"];
+const JIANS = ["建","除","满","平","定","执","破","危","成","收","开","闭"];
+const XIUS = ["角","亢","氐","房","心","尾","箕","斗","牛","女","虚","危","室","壁","奎","娄","胃","昴","毕","觜","参","井","鬼","柳","星","张","翼","轸"];
+
+// 建星解释
+const JIAN_EXPLAIN = {
+  "建":"建为青龙，主吉，宜谋划、新事、动土",
+  "除":"除为明堂，主吉，宜除服、疗病、断邪",
+  "满":"满为天牢，主凶，宜祈福、纳财，忌嫁娶、出行",
+  "平":"平为天刑，主平，宜祭祀、祈福，忌大事",
+  "定":"定为青龙，主吉，宜嫁娶、安床、入宅",
+  "执":"执为天德，主吉，宜执持、守成，忌出行",
+  "破":"破为朱雀，主凶，宜破屋、坏垣，忌大事",
+  "危":"危为玉堂，主吉，宜安床、入宅，忌动土",
+  "成":"成为天厨，主吉，宜嫁娶、开市、出行",
+  "收":"收为宝光，主吉，宜收财、纳畜，忌嫁娶",
+  "开":"开为青龙，主吉，宜嫁娶、开市、入宅",
+  "闭":"闭为玄武，主平，宜祈福、安葬，忌出行、开市"
+};
+
+// 星宿解释
+const XIU_EXPLAIN = {
+  "角":"角木蛟，主吉，宜出行、嫁娶、修造",
+  "亢":"亢金龙，主凶，宜祭祀、祈福，忌动土",
+  "氐":"氐土貉，主平，宜安床、入宅，忌出行",
+  "房":"房日兔，主吉，宜嫁娶、开市、出行",
+  "心":"心月狐，主凶，宜祭祀，忌大事",
+  "尾":"尾火虎，主吉，宜嫁娶、修造、动土",
+  "箕":"箕水豹，主吉，宜出行、嫁娶、入宅",
+  "斗":"斗木獬，主吉，宜嫁娶、开市、修造",
+  "牛":"牛金牛，主凶，宜祭祀，忌大事",
+  "女":"女土蝠，主平，宜安床、入宅，忌出行",
+  "虚":"虚日鼠，主凶，宜祭祀，忌大事",
+  "危":"危月燕，主平，宜安床、入宅，忌动土",
+  "室":"室火猪，主吉，宜嫁娶、修造、动土",
+  "壁":"壁水貐，主吉，宜出行、嫁娶、入宅",
+  "奎":"奎木狼，主吉，宜嫁娶、修造、动土",
+  "娄":"娄金狗，主吉，宜嫁娶、开市、出行、祭祀",
+  "胃":"胃土雉，主吉，宜嫁娶、修造、动土",
+  "昴":"昴日鸡，主凶，宜祭祀，忌大事",
+  "毕":"毕月乌，主吉，宜出行、嫁娶、修造",
+  "觜":"觜火猴，主平，宜安床、入宅，忌出行",
+  "参":"参水猿，主吉，宜嫁娶、修造、动土",
+  "井":"井木犴，主吉，宜嫁娶、开市、出行",
+  "鬼":"鬼金羊，主凶，宜祭祀，忌大事",
+  "柳":"柳土獐，主平，宜安床、入宅，忌出行",
+  "星":"星日马，主凶，宜祭祀，忌大事",
+  "张":"张月鹿，主吉，宜嫁娶、修造、动土",
+  "翼":"翼火蛇，主吉，宜出行、嫁娶、入宅",
+  "轸":"轸水蚓，主平，宜安床、入宅，忌出行"
+};
+
+const YI_FULL = {
+  建:["祭祀","祈福","嫁娶","纳采","入宅","安床","修造","动土","开市","交易","开光","出行"],
+  除:["祭祀","祈福","出行","嫁娶","修造","动土","安门","安床","入宅","开市","交易","开光"],
+  满:["祈福","开市","交易","纳财","安床","扫舍","竖柱","上梁","开光","出行","嫁娶"],
+  平:["祭祀","祈福","安葬","入殓","除服","成服","移柩","破土","启钻","立碑","谢土"],
+  定:["祭祀","祈福","嫁娶","安床","纳采","入宅","开市","交易","开光"],
+  执:["祭祀","祈福","出行","嫁娶","安床","入宅","开市","交易","开光","修造","动土"],
+  破:["祭祀","祈福","安葬","破土","行丧","除服","成服","移柩","启钻","谢土"],
+  危:["祭祀","祈福","嫁娶","入宅","安床","开市","交易","开光","出行"],
+  成:["祭祀","祈福","开市","入宅","嫁娶","纳采","安床","修造","动土","出行"],
+  收:["祭祀","祈福","安葬","破土","安床","入宅","开市","交易","开光"],
+  开:["祭祀","祈福","出行","开市","嫁娶","纳采","安床","修造","动土","入宅"],
+  闭:["祭祀","祈福","安葬","入宅","安床","修造","动土","破土","启钻","除服"]
+};
+const JI_FULL = {
+  建:["破土","行丧","安葬","开市","入宅","嫁娶","出行","移徙"],
+  除:["破土","行丧","安葬","作灶","入宅","嫁娶","出行"],
+  满:["嫁娶","出行","入宅","安葬","破土","行丧"],
+  平:["嫁娶","开市","入宅","出行","修造","动土"],
+  定:["破土","行丧","安葬","动土","入宅","嫁娶"],
+  执:["破土","开市","安葬","入宅","嫁娶"],
+  破:["嫁娶","开市","安床","入宅","出行"],
+  危:["破土","开市","安葬","入宅","嫁娶"],
+  成:["破土","行丧","安葬","探病","入宅"],
+  收:["嫁娶","开市","入宅","出行","修造"],
+  开:["破土","探病","安葬","入宅"],
+  闭:["嫁娶","开市","入宅","出行","修造"]
+};
+
+const CAISHEN = ["东北","正东","东南","正南","东南","正东","东北","正北","西北","正西","西南","正南"];
+const XISHEN = ["正北","东北","正东","东南","正南","西南","正西","西北","正北","东北","正东","东南"];
+
+// ================== 节气 & 节日 ==================
+const TERMS = {
+  "01-05":"小寒","01-20":"大寒","02-04":"立春","02-19":"雨水","03-05":"惊蛰","03-20":"春分","04-05":"清明","04-20":"谷雨",
+  "05-05":"立夏","05-21":"小满","06-05":"芒种","06-21":"夏至","07-07":"小暑","07-23":"大暑","08-07":"立秋","08-23":"处暑",
+  "09-07":"白露","09-23":"秋分","10-08":"寒露","10-23":"霜降","11-07":"立冬","11-22":"小雪","12-07":"大雪","12-21":"冬至"
+};
+const TERM_ICONS = {
+  "小寒":"❄️","大寒":"🧊","立春":"🌱","雨水":"🌧️","惊蛰":"⚡","春分":"🌸","清明":"🪁","谷雨":"🌾",
+  "立夏":"☀️","小满":"🌾","芒种":"🌱","夏至":"☀️","小暑":"🔥","大暑":"🌞","立秋":"🍂","处暑":"🍁",
+  "白露":"💧","秋分":"🍂","寒露":"❄️","霜降":"🧊","立冬":"❄️","小雪":"🌨️","大雪":"❄️","冬至":"🥟"
+};
+const LUNAR_FESTIVALS = {
+  "1-1":"春节","1-2":"初二","1-3":"初三","1-15":"元宵","2-2":"龙抬头","5-5":"端午","7-7":"七夕","8-15":"中秋","9-9":"重阳","12-8":"腊八","12-30":"除夕"
+};
+const LUNAR_ICONS = {
+  "春节":"🧨","初二":"🏮","初三":"🏮","元宵":"🏮","龙抬头":"🐉","端午":"🐲","七夕":"🎋","中秋":"🥮","重阳":"🎍","腊八":"🥣","除夕":"🧧"
+};
+const SOLAR_FESTIVALS = {
+  "1-1":"元旦","2-14":"情人","3-8":"妇女","5-1":"劳动","6-1":"儿童","7-1":"建党","8-1":"建军","9-10":"教师","10-1":"国庆"
+};
+const SOLAR_ICONS = {"元旦":"🎉","情人":"❤️","妇女":"👩","劳动":"🛠️","儿童":"👧","建党":"🎈","建军":"🪖","教师":"🍎","国庆":"🇨🇳"};
+
+// 农历月称呼
+const MONTH_NAMES = ["","正月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","腊月"];
+
+// ================== 1949~2040 完整农历数据表 ==================
+const LUNAR_DATA = {
+1949:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1950:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1951:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1952:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1953:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1954:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1955:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1956:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1957:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1958:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1959:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1960:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1961:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1962:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1963:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1964:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1965:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1966:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1967:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1968:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1969:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1970:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1971:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1972:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1973:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1974:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1975:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1976:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1977:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1978:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1979:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1980:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1981:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1982:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1983:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1984:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1985:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1986:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1987:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1988:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1989:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1990:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1991:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1992:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1993:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1994:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1995:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1996:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1997:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1998:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+1999:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2000:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2001:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2002:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2003:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2004:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2005:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2006:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2007:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2008:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2009:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2010:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2011:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2012:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:4,leapDays:29},
+2013:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2014:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:9,leapDays:29},
+2015:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2016:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:2,leapDays:29},
+2017:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:6,leapDays:29},
+2018:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2019:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2020:{months:[0,30,29,30,29,30,29,30,29,30,29,30,29],leap:4,leapDays:29},
+2021:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2022:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2023:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:2,leapDays:29},
+2024:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2025:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2026:{months:[0,29,30,29,29,30,29,30,29,30,29,30,29],leap:0},
+2027:{months:[0,30,29,30,29,30,29,30,29,30,30,29,30],leap:0},
+2028:{months:[0,29,30,29,30,29,30,29,30,29,30,30,29],leap:5,leapDays:29},
+2029:{months:[0,30,29,30,29,30,30,29,30,29,30,29,30],leap:0},
+2030:{months:[0,29,30,29,30,29,30,29,30,30,30,29,30],leap:0},
+2031:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:3,leapDays:29},
+2032:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2033:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:11,leapDays:29},
+2034:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2035:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2036:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:6,leapDays:29},
+2037:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2038:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2039:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0},
+2040:{months:[0,29,30,29,30,29,30,29,30,29,30,29,30],leap:0}
+};
+
+// ================== 农历计算 ==================
+const LUNAR_BASE = new Date(2025,0,29);
+function solarToLunar(y,m,d){
+  const now = new Date(y,m-1,d);
+  const diff = Math.floor((now - LUNAR_BASE) / 86400000);
+  let ly=2025,lm=1,ld=1,isLeap=false;
+  let rest = diff;
+  if(rest>=0){
+    while(rest>0){
+      ld++;
+      const yd = LUNAR_DATA[ly];
+      if(ld>yd.months[lm]){
+        ld=1;
+        if(yd.leap && lm===yd.leap && !isLeap) isLeap=true;
+        else{ isLeap=false; lm++; if(lm>12){lm=1;ly++;} }
+      }
+      rest--;
+    }
+  }else{
+    rest=-rest;
+    while(rest>0){
+      ld--;
+      if(ld<1){
+        const yd=LUNAR_DATA[ly];
+        if(yd.leap&&lm===yd.leap+1&&isLeap){ isLeap=false; ld=yd.leapDays; }
+        else{
+          lm--; isLeap=false; if(lm<1){ly--;lm=12;}
+          ld=yd.months[lm];
+          if(yd.leap&&lm===yd.leap){ isLeap=true; ld=yd.leapDays; }
+        }
+      }
+      rest--;
+    }
+  }
+  const dNames = ["","初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];
+  return { lunarDisplay:dNames[ld], lunarMonth:lm, lunarDay:ld, isLeap };
+}
+
+// ================== 甲子纪年 ==================
+function getJiaZiYear(year){
+  const base=1984;
+  const offset=year-base;
+  const gan=TIANGAN[offset%10];
+  const zhi=DIZHI[offset%12];
+  const sx=SHENGXIAO[offset%12];
+  return gan+zhi+"年（"+sx+"年）";
+}
+
+// ================== 全局日期 ==================
+let selY,selM,selD;
+let now=new Date();
+let cy=now.getFullYear();
+let cm=now.getMonth()+1;
+
+// ================== 黄历 ==================
+function getAlmanac(y,m,d){
+  const cur=new Date(y,m-1,d);
+  const diff=Math.floor((cur-LUNAR_BASE)/86400000);
+  const gz=(diff+39)%60;
+  const gan=TIANGAN[gz%10];
+  const zhi=DIZHI[gz%12];
+  const sx=SHENGXIAO[(y-1984+12)%12];
+  const jian=JIANS[diff%12];
+  const xiu=XIUS[diff%28];
+  const chong=`冲${DIZHI[(gz%12+6)%12]} 煞${["东","南","西","北"][gz%4]}`;
+  const cai=CAISHEN[gz%12]+"方";
+  const xi=XISHEN[gz%12]+"方";
+  return { ganzhi:gan+zhi, sx, jian, xiu, chong, cai, xi, yi:YI_FULL[jian], ji:JI_FULL[jian] };
+}
+
+// ================== 弹窗 ==================
+function openPanel(y,m,d){
+  selY=y;selM=m;selD=d;
+  document.getElementById("panelTitle").innerText=`${y}年${m}月${d}日 · 时辰查询`;
+  document.getElementById("result").innerHTML="";
+  document.getElementById("almanac").innerHTML="";
+  document.getElementById("panel").classList.add("show");
+  document.getElementById("mask").classList.add("show");
+}
+function closePanel(){
+  document.getElementById("panel").classList.remove("show");
+  document.getElementById("mask").classList.remove("show");
+}
+
+// ================== 新增：添加到桌面引导 ==================
+function showAddGuide(){
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if(isIOS){
+    document.getElementById("iosGuide").style.display = "block";
+  }else{
+    // 安卓：触发浏览器添加到主屏幕
+    if(window.beforeinstallpromptEvent){
+      window.beforeinstallpromptEvent.prompt();
+    }else{
+      alert("请点击浏览器菜单 → 添加到主屏幕");
+    }
+  }
+}
+function closeIosGuide(){
+  document.getElementById("iosGuide").style.display = "none";
+}
+
+// 监听安装事件
+let beforeinstallpromptEvent;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  beforeinstallpromptEvent = e;
+});
+
+// ================== 查询 ==================
+function doQuery(){
+  const sx=document.getElementById("selSx").value;
+  const sc=document.getElementById("selSc").value;
+  const alm=getAlmanac(selY,selM,selD);
+  const lunar=solarToLunar(selY,selM,selD);
+
+  let res=`
+<strong>查询结果</strong><br>
+日期：${selY}年${selM}月${selD}日（农历${lunar.isLeap?"闰":""}${MONTH_NAMES[lunar.lunarMonth]}${lunar.lunarDisplay}）<br>
+生肖：${sx}　时辰：${sc}时<br>
+运势：${sx}人在本日${sc}时，恰逢${alm.jian}日，${JIAN_EXPLAIN[alm.jian]}。<br>
+本日宜以稳为主，适合${alm.jian==="闭"?"收尾、祈福、安葬":"谋划、行事、求财"}，忌冲动决策、与人争执，出行需注意安全，求财可往${alm.cai}方位，提升运势。
+`;
+
+  let ahtml=`
+    <div class="item"><span class="label">干支</span><span class="value">${alm.ganzhi}日</span></div>
+    <div class="item"><span class="label">建星</span><span class="value">${alm.jian} <span class="explain-tag">${JIAN_EXPLAIN[alm.jian].split("，")[0]}</span></span></div>
+    <div class="item"><span class="label">星宿</span><span class="value">${alm.xiu} <span class="explain-tag">${XIU_EXPLAIN[alm.xiu].split("，")[0]}</span></span></div>
+    <div class="item"><span class="label">冲煞</span><span class="value">${alm.chong}</span></div>
+    <div class="item"><span class="label">财神</span><span class="value">${alm.cai}</span></div>
+    <div class="item"><span class="label">喜神</span><span class="value">${alm.xi}</span></div>
+    <div class="yi-ji">
+      <div class="yi-ji-title">宜</div><div class="tags">${alm.yi.map(t=>`<span class="tag yi">${t}</span>`).join('')}</div>
+      <div class="yi-ji-title">忌</div><div class="tags">${alm.ji.map(t=>`<span class="tag ji">${t}</span>`).join('')}</div>
+    </div>
+  `;
+
+  document.getElementById("result").innerHTML=res;
+  document.getElementById("almanac").innerHTML=ahtml;
+}
+
+// ================== 日历渲染 ==================
+function render(){
+  document.getElementById("solarTitle").innerText=`${cy}年${cm}月`;
+  document.getElementById("lunarTitle").innerText=getJiaZiYear(cy);
+  const grid=document.getElementById("daysGrid");
+  grid.innerHTML="";
+  const first=new Date(cy,cm-1,1).getDay();
+  const days=new Date(cy,cm,0).getDate();
+
+  for(let i=0;i<first;i++)grid.innerHTML+=`<div class="day other"></div>`;
+  for(let d=1;d<=days;d++){
+    const key=`${String(cm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const lunar=solarToLunar(cy,cm,d);
+    const lkey=`${lunar.lunarMonth}-${lunar.lunarDay}`;
+    const isToday=cy==now.getFullYear()&&cm==now.getMonth()+1&&d==now.getDate();
+    let info='',icon='';
+
+    if(SOLAR_FESTIVALS[key]){
+      info=`<span class="festival-text">${SOLAR_FESTIVALS[key]}</span>`;
+      icon=SOLAR_ICONS[SOLAR_FESTIVALS[key]];
+    }else if(LUNAR_FESTIVALS[lkey]){
+      info=`<span class="festival-text">${LUNAR_FESTIVALS[lkey]}</span>`;
+      icon=LUNAR_ICONS[LUNAR_FESTIVALS[lkey]];
+    }else if(TERMS[key]){
+      info=`<span class="term-text">${TERMS[key]}</span>`;
+      icon=TERM_ICONS[TERMS[key]];
+    }else{
+      if(lunar.lunarDay===1){
+        const monthText=lunar.isLeap?"闰"+MONTH_NAMES[lunar.lunarMonth]:MONTH_NAMES[lunar.lunarMonth];
+        info=`<span class="month-title">${monthText}</span>`;
+      }else{
+        info=`<span class="lunar-text">${lunar.lunarDisplay}</span>`;
+      }
+    }
+
+    grid.innerHTML+=`
+<div class="day ${isToday?'today':''}" onclick="openPanel(${cy},${cm},${d})">
+  <div class="day-num">${d}</div>
+  <div class="day-info">${info}</div>
+  <div class="day-icon">${icon}</div>
+</div>`;
+  }
+}
+
+function prevMonth(){cm--;if(cm<1){cm=12;cy--;}render();}
+function nextMonth(){cm++;if(cm>12){cm=1;cy++;}render();}
+
+render();
+</script>
+</body>
+</html>

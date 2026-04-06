@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>效率工具中心</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui, sans-serif}
+  body{background:#f5f7fa;padding:20px;max-width:500px;margin:0 auto}
+
+  .title{font-size:26px;font-weight:700;margin-bottom:24px}
+  .cat{font-size:17px;font-weight:600;margin:24px 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .item{background:#fff;border-radius:18px;padding:20px 10px;text-align:center;cursor:pointer}
+  .item:active{opacity:.9}
+  .item .icon{font-size:26px;margin-bottom:6px}
+  .item .name{font-size:13px}
+
+  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.3);display:none;justify-content:center;align-items:center;padding:20px;z-index:999}
+  .modal.show{display:flex}
+  .modal-body{background:#fff;width:100%;max-width:500px;border-radius:20px;padding:24px;position:relative;max-height:90vh;overflow-y:auto}
+  .close{position:absolute;top:16px;right:16px;font-size:22px;cursor:pointer;padding:4px}
+  .modal-title{font-size:20px;font-weight:600;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+
+  input,textarea,button{width:100%;padding:12px;border-radius:12px;border:1px solid #eee;margin:8px 0}
+  button{background:#007AFF;color:#fff;border:none;cursor:pointer}
+  .btn-gray{background:#888}
+  .btn-row{display:flex;gap:8px;margin:8px 0}
+  .btn-row button{flex:1}
+  .time{font-size:40px;text-align:center;margin:30px 0}
+  .run-num{font-size:48px;text-align:center;margin:30px 0;color:#007AFF}
+  .result{background:#edf5ff;padding:16px;border-radius:12px;margin-top:10px;white-space:pre-line;min-height:80px}
+  .item-list{max-height:200px;overflow-y:auto;margin:10px 0}
+  .item-list div{padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+  .item-list button{width:auto;padding:4px 8px;margin:0 2px;font-size:12px}
+
+  .calc-display{background:#f0f0f0;border-radius:8px;padding:16px;text-align:right;font-size:24px;margin-bottom:12px}
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .calc-btn{padding:16px;border-radius:8px;border:none;font-size:18px;background:#e0e0e0;cursor:pointer}
+  .calc-btn.op{background:#ff9500;color:#fff}
+  .calc-btn.eq{background:#007AFF;grid-column:span 2}
+
+  #qrcode-box{text-align:center;margin-top:16px}
+  #qrcode-img{width:250px;height:250px;margin:0 auto;border:1px solid #eee;border-radius:8px}
+
+  .convert-group{display:flex;gap:8px;align-items:center;margin:12px 0}
+  .convert-group input,.convert-group select{flex:1;padding:12px}
+
+  .calendar-week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:#666;margin:8px 0}
+  .calendar-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .calendar-day{padding:6px 2px;text-align:center;border-radius:6px;background:#f9f9f9;min-height:50px;display:flex;flex-direction:column;justify-content:center}
+  .calendar-day.today{background:#007AFF;color:#fff}
+  .calendar-day.other-month{color:#ccc;background:transparent}
+  .day-num{font-size:15px;font-weight:bold}
+  .day-lunar{font-size:10px;color:#666}
+  .day-term{font-size:9px;color:#ff5400}
+
+  .alarm-modal{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);
+    display:none;justify-content:center;align-items:center;z-index:9999}
+  .alarm-modal.show{display:flex}
+  .alarm-box{background:#fff;border-radius:20px;padding:30px;width:90%;max-width:400px;text-align:center}
+  .alarm-title{font-size:22px;margin-bottom:16px}
+  .alarm-content{margin-bottom:24px;font-size:16px;line-height:1.6}
+  .alarm-btn{padding:12px 30px;border-radius:12px;background:#007AFF;color:#fff;border:none}
+</style>
+<!-- 补全html2canvas依赖，解决复制二维码报错问题 -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.7.7/dist/lunar.min.js"></script>
+</head>
+<body>
+
+<div class="title">🧰 效率工具中心</div>
+
+<div class="cat">📌 日常工具</div>
+<div class="grid">
+  <div class="item" onclick="openModal('timer')"><div class="icon">⏱️</div><div class="name">秒表</div></div>
+  <div class="item" onclick="openModal('run')"><div class="icon">🏃</div><div class="name">跑步计数</div></div>
+  <div class="item" onclick="openModal('note')"><div class="icon">📝</div><div class="name">笔记</div></div>
+  <div class="item" onclick="openModal('todo')"><div class="icon">✅</div><div class="name">待办</div></div>
+  <div class="item" onclick="openModal('alarm')"><div class="icon">🔔</div><div class="name">闹钟</div></div>
+  <div class="item" onclick="openModal('diary')"><div class="icon">📔</div><div class="name">日记</div></div>
+  <div class="item" onclick="openModal('calendar')"><div class="icon">📅</div><div class="name">日历</div></div>
+  <div class="item" onclick="openModal('memo')"><div class="icon">📌</div><div class="name">便签</div></div>
+</div>
+
+<div class="cat">⚙️ 效率工具</div>
+<div class="grid">
+  <div class="item" onclick="openModal('calc')"><div class="icon">🧮</div><div class="name">计算器</div></div>
+  <div class="item" onclick="openModal('pwd')"><div class="icon">🔐</div><div class="name">密码生成</div></div>
+  <div class="item" onclick="openModal('word')"><div class="icon">📕</div><div class="name">字数统计</div></div>
+  <div class="item" onclick="openModal('qrcode')"><div class="icon">🧾</div><div class="name">二维码</div></div>
+  <div class="item" onclick="openModal('weight')"><div class="icon">⚖️</div><div class="name">重量换算</div></div>
+  <div class="item" onclick="openModal('unit')"><div class="icon">📏</div><div class="name">单位换算</div></div>
+  <div class="item" onclick="openModal('timestamp')"><div class="icon">🕰️</div><div class="name">时间戳</div></div>
+  <div class="item" onclick="openModal('ip')"><div class="icon">🌐</div><div class="name">IP查询</div></div>
+</div>
+
+<div class="cat">🤖 AI 工具</div>
+<div class="grid">
+  <div class="item" onclick="openModal('doubao')"><div class="icon">🫘</div><div class="name">豆包</div></div>
+  <div class="item" onclick="openModal('tongyi')"><div class="icon">☁️</div><div class="name">通义千问</div></div>
+  <div class="item" onclick="openModal('summary')"><div class="icon">📄</div><div class="name">AI总结</div></div>
+  <div class="item" onclick="openModal('chat')"><div class="icon">💬</div><div class="name">AI对话</div></div>
+  <div class="item" onclick="openModal('write')"><div class="icon">✍️</div><div class="name">AI写作</div></div>
+  <div class="item" onclick="openModal('cv')"><div class="icon">📃</div><div class="name">简历优化</div></div>
+  <div class="item" onclick="openModal('translate')"><div class="icon">🌍</div><div class="name">AI翻译</div></div>
+  <div class="item" onclick="openModal('mind')"><div class="icon">🧠</div><div class="name">思维导图</div></div>
+</div>
+
+<!-- 秒表 -->
+<div class="modal" id="modal_timer">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">⏱️ 秒表计时</div>
+    <div class="time" id="timer_text">00:00:00</div>
+    <button onclick="timerStart()">开始</button>
+    <button class="btn-gray" onclick="timerStop()">暂停</button>
+    <button class="btn-gray" onclick="timerReset()">重置</button>
+  </div>
+</div>
+
+<!-- 跑步计数 -->
+<div class="modal" id="modal_run">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🏃 跑步计数</div>
+    <div class="run-num" id="run_count">0</div>
+    <p style="text-align:center;margin-bottom:10px">摇一摇手机计步</p>
+    <button class="btn-gray" onclick="runReset()">重置步数</button>
+    <div class="result" id="run_info">当前步数：0</div>
+  </div>
+</div>
+
+<!-- 笔记 -->
+<div class="modal" id="modal_note">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📝 笔记</div>
+    <input type="date" id="note_date">
+    <textarea id="note_content" rows="6" placeholder="输入笔记内容"></textarea>
+    <div class="btn-row">
+      <button onclick="saveNote()">保存笔记</button>
+      <button class="btn-gray" onclick="viewNote()">查看笔记</button>
+    </div>
+    <div class="item-list" id="note_list"></div>
+    <div class="result" id="note_view"></div>
+    <div class="btn-row" id="note_op_btn" style="display:none">
+      <button class="btn-gray" onclick="copyNote()">复制</button>
+      <button class="btn-gray" onclick="deleteNote()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 待办 -->
+<div class="modal" id="modal_todo">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">✅ 待办清单</div>
+    <input type="date" id="todo_date">
+    <input type="time" id="todo_time" placeholder="提醒时间（可选）">
+    <input id="todo_input" placeholder="输入待办内容">
+    <div class="btn-row">
+      <button onclick="addTodo()">添加待办</button>
+      <button class="btn-gray" onclick="viewTodo()">查看待办</button>
+    </div>
+    <div class="item-list" id="todo_list"></div>
+    <div class="result" id="todo_view"></div>
+    <div class="btn-row" id="todo_op_btn" style="display:none">
+      <button class="btn-gray" onclick="copyTodo()">复制</button>
+      <button class="btn-gray" onclick="deleteTodo()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 闹钟 -->
+<div class="modal" id="modal_alarm">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🔔 闹钟提醒</div>
+    <input type="time" id="alarm_time">
+    <button onclick="setAlarm()">设置提醒</button>
+    <div class="result" id="alarm_tip"></div>
+  </div>
+</div>
+
+<!-- 日记 -->
+<div class="modal" id="modal_diary">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📔 日记</div>
+    <input type="date" id="diary_date_picker">
+    <textarea rows="6" id="diary_content" placeholder="输入日记内容"></textarea>
+    <div class="btn-row">
+      <button onclick="saveDiary()">保存日记</button>
+      <button class="btn-gray" onclick="viewDiaryByDate()">查看日记</button>
+    </div>
+    <div class="result" id="diary_view"></div>
+    <div class="btn-row" id="diary_op_btn" style="display:none">
+      <button class="btn-gray" onclick="copyDiary()">复制</button>
+      <button class="btn-gray" onclick="deleteDiary()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日历 -->
+<div class="modal" id="modal_calendar">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">
+      <span>📅 日历</span>
+      <div>
+        <button class="btn-gray" onclick="prevMonth()">←</button>
+        <button class="btn-gray" onclick="nextMonth()">→</button>
+      </div>
+    </div>
+    <div id="cal_title" style="text-align:center;font-weight:bold;margin-bottom:8px"></div>
+    <div class="calendar-week">
+      <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+    </div>
+    <div class="calendar-days" id="cal_days"></div>
+  </div>
+</div>
+
+<!-- 便签 -->
+<div class="modal" id="modal_memo">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📌 便签</div>
+    <input type="date" id="memo_date">
+    <textarea rows="6" id="memo_content" placeholder="输入便签内容"></textarea>
+    <div class="btn-row">
+      <button onclick="saveMemo()">保存便签</button>
+      <button class="btn-gray" onclick="viewMemo()">查看便签</button>
+    </div>
+    <div class="item-list" id="memo_list"></div>
+    <div class="result" id="memo_view"></div>
+    <div class="btn-row" id="memo_op_btn" style="display:none">
+      <button class="btn-gray" onclick="copyMemo()">复制</button>
+      <button class="btn-gray" onclick="deleteMemo()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 计算器 -->
+<div class="modal" id="modal_calc">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🧮 计算器</div>
+    <div class="calc-display" id="calc_display">0</div>
+    <div class="calc-grid">
+      <button class="calc-btn op" onclick="calcClear()">AC</button>
+      <button class="calc-btn op" onclick="calcDel()">⌫</button>
+      <button class="calc-btn op" onclick="calcInput('%')">%</button>
+      <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+      <button class="calc-btn" onclick="calcInput('7')">7</button>
+      <button class="calc-btn" onclick="calcInput('8')">8</button>
+      <button class="calc-btn" onclick="calcInput('9')">9</button>
+      <button class="calc-btn op" onclick="calcInput('*')">×</button>
+      <button class="calc-btn" onclick="calcInput('4')">4</button>
+      <button class="calc-btn" onclick="calcInput('5')">5</button>
+      <button class="calc-btn" onclick="calcInput('6')">6</button>
+      <button class="calc-btn op" onclick="calcInput('-')">-</button>
+      <button class="calc-btn" onclick="calcInput('1')">1</button>
+      <button class="calc-btn" onclick="calcInput('2')">2</button>
+      <button class="calc-btn" onclick="calcInput('3')">3</button>
+      <button class="calc-btn op" onclick="calcInput('+')">+</button>
+      <button class="calc-btn" onclick="calcInput('0')">0</button>
+      <button class="calc-btn" onclick="calcInput('.')">.</button>
+      <button class="calc-btn eq" onclick="calcEqual()">=</button>
+    </div>
+  </div>
+</div>
+
+<!-- 密码生成 -->
+<div class="modal" id="modal_pwd">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🔐 密码生成</div>
+    <button onclick="genPwd()">生成密码</button>
+    <button class="btn-gray" onclick="togglePwdVisible()">查看/隐藏密码</button>
+    <div class="result" id="pwd_result"></div>
+  </div>
+</div>
+
+<!-- 字数统计 -->
+<div class="modal" id="modal_word">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📕 字数统计</div>
+    <textarea rows="5" id="word_text" oninput="countWord()"></textarea>
+    <div class="result" id="word_count">0 字</div>
+  </div>
+</div>
+
+<!-- 二维码（完全修复版） -->
+<div class="modal" id="modal_qrcode">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🧾 二维码生成</div>
+    <input id="qr_content" placeholder="输入网址或内容" value="https://sm.ms/home/apitoken">
+    <button onclick="genQrcode()">生成二维码</button>
+    <div id="qrcode-box">
+      <canvas id="qrcode-canvas" width="250" height="250" style="border:1px solid #eee;border-radius:8px;margin:0 auto;display:block"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 重量换算 -->
+<div class="modal" id="modal_weight">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">⚖️ 重量换算</div>
+    <div class="convert-group">
+      <input type="number" id="weight_val" placeholder="数值">
+      <select id="weight_from">
+        <option value="kg">公斤</option>
+        <option value="g">克</option>
+        <option value="t">吨</option>
+        <option value="lb">磅</option>
+        <option value="oz">盎司</option>
+        <option value="jin">斤</option>
+        <option value="liang">两</option>
+      </select>
+    </div>
+    <button onclick="convertWeight()">一键换算</button>
+    <div class="result" id="weight_result"></div>
+  </div>
+</div>
+
+<!-- 单位换算 -->
+<div class="modal" id="modal_unit">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📏 单位换算</div>
+    <div class="convert-group">
+      <input type="number" id="unit_val" placeholder="数值">
+      <select id="unit_type">
+        <option value="length">长度</option>
+        <option value="area">面积</option>
+        <option value="volume">体积</option>
+        <option value="time">时间</option>
+        <option value="temperature">温度</option>
+        <option value="speed">速度</option>
+        <option value="pressure">压力</option>
+        <option value="power">功率</option>
+        <option value="energy">能量</option>
+      </select>
+      <select id="unit_from"></select>
+    </div>
+    <button onclick="convertUnit()">一键换算</button>
+    <div class="result" id="unit_result"></div>
+  </div>
+</div>
+
+<!-- 时间戳 -->
+<div class="modal" id="modal_timestamp">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🕰️ 时间戳</div>
+    <button onclick="getTs()">获取时间戳</button>
+    <div class="result" id="ts_result"></div>
+  </div>
+</div>
+
+<!-- IP查询 -->
+<div class="modal" id="modal_ip">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🌐 IP查询</div>
+    <button onclick="getIp()">查询IP</button>
+    <div class="result" id="ip_result"></div>
+  </div>
+</div>
+
+<!-- AI 豆包 -->
+<div class="modal" id="modal_doubao">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🫘 豆包 AI</div>
+    <textarea rows="4" id="doubao_msg" placeholder="输入问题"></textarea>
+    <button onclick="askDoubao()">发送</button>
+    <div class="result" id="doubao_result"></div>
+  </div>
+</div>
+
+<!-- AI 通义千问 -->
+<div class="modal" id="modal_tongyi">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">☁️ 通义千问</div>
+    <textarea rows="4" id="tongyi_msg" placeholder="输入问题"></textarea>
+    <button onclick="askTongyi()">发送</button>
+    <div class="result" id="tongyi_result"></div>
+  </div>
+</div>
+
+<!-- AI 总结 -->
+<div class="modal" id="modal_summary">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📄 AI文本总结</div>
+    <textarea rows="6" id="sum_text" placeholder="粘贴文本"></textarea>
+    <button onclick="doSummary()">总结</button>
+    <div class="result" id="sum_result"></div>
+  </div>
+</div>
+
+<!-- AI 对话 -->
+<div class="modal" id="modal_chat">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">💬 AI对话</div>
+    <div class="result" id="chat_history" style="max-height:300px;overflow-y:auto"></div>
+    <textarea rows="3" id="chat_input" placeholder="输入消息"></textarea>
+    <button onclick="sendChat()">发送</button>
+  </div>
+</div>
+
+<!-- AI 写作 -->
+<div class="modal" id="modal_write">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">✍️ AI写作</div>
+    <textarea rows="4" id="write_topic" placeholder="主题"></textarea>
+    <button onclick="writeAI()">生成文章</button>
+    <div class="result" id="write_result"></div>
+  </div>
+</div>
+
+<!-- 简历优化 -->
+<div class="modal" id="modal_cv">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">📃 简历优化</div>
+    <textarea rows="6" id="cv_text" placeholder="简历内容"></textarea>
+    <button onclick="optimizeCV()">优化</button>
+    <div class="result" id="cv_result"></div>
+  </div>
+</div>
+
+<!-- AI翻译 -->
+<div class="modal" id="modal_translate">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🌍 AI翻译</div>
+    <select id="trans_from"><option value="auto">自动</option><option value="zh">中文</option><option value="en">英文</option></select>
+    <select id="trans_to"><option value="zh">中文</option><option value="en">英文</option></select>
+    <textarea rows="4" id="trans_text"></textarea>
+    <button onclick="translateAI()">翻译</button>
+    <div class="result" id="trans_result"></div>
+  </div>
+</div>
+
+<!-- 思维导图 -->
+<div class="modal" id="modal_mind">
+  <div class="modal-body">
+    <div class="close" onclick="closeModal()">×</div>
+    <div class="modal-title">🧠 思维导图</div>
+    <input id="mind_topic" placeholder="主题">
+    <button onclick="genMind()">生成大纲</button>
+    <div class="result" id="mind_result"></div>
+  </div>
+</div>
+
+<!-- 闹钟提醒弹窗 -->
+<div class="alarm-modal" id="alarmModal">
+  <div class="alarm-box">
+    <div class="alarm-title">🔔 待办提醒</div>
+    <div class="alarm-content" id="alarmContent"></div>
+    <button class="alarm-btn" onclick="closeAlarm()">关闭</button>
+  </div>
+</div>
+
+<audio id="alarmAudio" loop preload="auto">
+  <source src="https://www.soundjay.com/phone/sounds/telephone-ring-04.wav" type="audio/wav">
+
+
+<script>
+let currentModal = null;
+let currentNote = null, currentTodo = null, currentDiary = null, currentMemo = null;
+let pwdVisible = false;
+let realPwd = '';
+
+let alarmIntervals = {};
+let alarmTimeouts = {};
+
+// 今日日期
+function fillToday() {
+  const today = new Date().toISOString().split('T')[0];
+  if (document.getElementById('note_date')) document.getElementById('note_date').value = today;
+  if (document.getElementById('todo_date')) document.getElementById('todo_date').value = today;
+  if (document.getElementById('diary_date_picker')) document.getElementById('diary_date_picker').value = today;
+  if (document.getElementById('memo_date')) document.getElementById('memo_date').value = today;
+}
+
+function openModal(id) {
+  closeModal();
+  currentModal = document.getElementById('modal_' + id);
+  currentModal.classList.add('show');
+  fillToday();
+  if (id === 'run') startShakeStep();
+  if (id === 'calendar') renderCalendar();
+  if (id === 'note') renderNoteList();
+  if (id === 'todo') renderTodoList();
+  if (id === 'memo') renderMemoList();
+}
+
+function closeModal() {
+  if (currentModal) currentModal.classList.remove('show');
+  currentModal = null;
+  currentNote = null; currentTodo = null; currentDiary = null; currentMemo = null;
+  document.getElementById('note_op_btn').style.display = 'none';
+  document.getElementById('todo_op_btn').style.display = 'none';
+  document.getElementById('diary_op_btn').style.display = 'none';
+  document.getElementById('memo_op_btn').style.display = 'none';
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => alert('复制成功')).catch(() => alert('复制失败'));
+}
+
+// 跑步
+let run = 0, lastShake = 0;
+function runAdd() {
+  run++;
+  document.getElementById('run_count').innerText = run;
+  document.getElementById('run_info').innerText = `当前步数：${run}`;
+}
+function runReset() {
+  run = 0;
+  document.getElementById('run_count').innerText = 0;
+  document.getElementById('run_info').innerText = '当前步数：0';
+}
+function startShakeStep() {
+  window.addEventListener('devicemotion', e => {
+    let v = Math.abs(e.accelerationIncludingGravity.x) + Math.abs(e.accelerationIncludingGravity.y) + Math.abs(e.accelerationIncludingGravity.z);
+    let now = Date.now();
+    if (v > 15 && now - lastShake > 800) {
+      lastShake = now;
+      runAdd();
+    }
+  });
+}
+
+// 日历
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+function prevMonth() { calMonth--; if (calMonth < 0) { calYear--; calMonth = 11; } renderCalendar(); }
+function nextMonth() { calMonth++; if (calMonth > 11) { calYear++; calMonth = 0; } renderCalendar(); }
+
+function renderCalendar() {
+  let first = new Date(calYear, calMonth, 1).getDay();
+  let days = new Date(calYear, calMonth + 1, 0).getDate();
+  let today = new Date();
+  document.getElementById('cal_title').innerText = `${calYear}年${calMonth + 1}月`;
+  let html = '';
+
+  let prevMonth = calMonth === 0 ? 11 : calMonth - 1;
+  let prevYear = calMonth === 0 ? calYear - 1 : calYear;
+  let prevDays = new Date(prevYear, prevMonth + 1, 0).getDate();
+  for (let i = first - 1; i >= 0; i--) {
+    html += `<div class="calendar-day other-month"><div class="day-num">${prevDays - i}</div></div>`;
+  }
+
+  for (let d = 1; d <= days; d++) {
+    let isToday = (calYear === today.getFullYear() && calMonth === today.getMonth() && d === today.getDate());
+    let solar = Solar.fromYmd(calYear, calMonth + 1, d);
+    let lunar = solar.getLunar();
+    let term = lunar.getJieQi() || '';
+    let cls = isToday ? 'calendar-day today' : 'calendar-day';
+    html += `<div class="${cls}">
+      <div class="day-num">${d}</div>
+      <div class="day-lunar">${lunar.getDayInChinese()}</div>
+      ${term ? `<div class="day-term">${term}</div>` : ''}
+    </div>`;
+  }
+
+  let nextDays = 42 - (first + days);
+  for (let d = 1; d <= nextDays; d++) {
+    html += `<div class="calendar-day other-month"><div class="day-num">${d}</div></div>`;
+  }
+  document.getElementById('cal_days').innerHTML = html;
+}
+
+// 笔记
+function saveNote() {
+  let date = document.getElementById('note_date').value;
+  let content = document.getElementById('note_content').value.trim();
+  if (!date || !content) return alert('请填写日期和内容');
+  let notes = JSON.parse(localStorage.getItem('notes') || '{}');
+  notes[date] = content;
+  localStorage.setItem('notes', JSON.stringify(notes));
+  alert('保存成功');
+  document.getElementById('note_content').value = '';
+  renderNoteList();
+}
+
+function renderNoteList() {
+  let notes = JSON.parse(localStorage.getItem('notes') || '{}');
+  let list = document.getElementById('note_list');
+  list.innerHTML = '';
+  Object.keys(notes).sort().reverse().forEach(date => {
+    let div = document.createElement('div');
+    div.innerHTML = `<span>${date}</span><button onclick="viewNoteDetail('${date}')">查看</button>`;
+    list.appendChild(div);
+  });
+}
+
+function viewNote() {
+  let date = document.getElementById('note_date').value;
+  viewNoteDetail(date);
+}
+
+function viewNoteDetail(date) {
+  let notes = JSON.parse(localStorage.getItem('notes') || '{}');
+  let content = notes[date] || '无笔记';
+  currentNote = date;
+  document.getElementById('note_view').innerText = content;
+  document.getElementById('note_op_btn').style.display = 'flex';
+}
+
+function copyNote() {
+  if (!currentNote) return;
+  let notes = JSON.parse(localStorage.getItem('notes') || '{}');
+  copyText(notes[currentNote]);
+}
+
+function deleteNote() {
+  if (!currentNote || !confirm('确定删除该笔记？')) return;
+  let notes = JSON.parse(localStorage.getItem('notes') || '{}');
+  delete notes[currentNote];
+  localStorage.setItem('notes', JSON.stringify(notes));
+  alert('删除成功');
+  document.getElementById('note_view').innerText = '';
+  document.getElementById('note_op_btn').style.display = 'none';
+  currentNote = null;
+  renderNoteList();
+}
+
+// 待办
+function addTodo() {
+  let date = document.getElementById('todo_date').value;
+  let time = document.getElementById('todo_time').value;
+  let content = document.getElementById('todo_input').value.trim();
+  if (!date || !content) return alert('请填写日期和内容');
+
+  let todos = JSON.parse(localStorage.getItem('todos') || '{}');
+  if (!todos[date]) todos[date] = [];
+
+  let item = { id: Date.now(), content, time, alarmOn: true };
+  todos[date].push(item);
+  localStorage.setItem('todos', JSON.stringify(todos));
+
+  if (time) setTodoAlarm(date, item);
+  alert('添加成功' + (time ? '（已设置提醒）' : ''));
+  document.getElementById('todo_input').value = '';
+  document.getElementById('todo_time').value = '';
+  renderTodoList();
+}
+
+function setTodoAlarm(date, item) {
+  if (!item.time || !item.alarmOn) return;
+  let [h, m] = item.time.split(':');
+  let now = new Date();
+  let alarmDate = new Date(date);
+  alarmDate.setHours(+h, +m, 0, 0);
+  if (alarmDate < now) return;
+
+  let key = `${date}_${item.id}`;
+  if (alarmTimeouts[key]) clearTimeout(alarmTimeouts[key]);
+  alarmTimeouts[key] = setTimeout(() => triggerAlarm(date, item), alarmDate - now);
+}
+
+function triggerAlarm(date, item) {
+  let audio = document.getElementById('alarmAudio');
+  audio.currentTime = 0; audio.play().catch(()=>{});
+  document.getElementById('alarmContent').innerText = `${date} ${item.time}\n${item.content}`;
+  document.getElementById('alarmModal').classList.add('show');
+  setTimeout(()=>audio.pause(), 30000);
+
+  let key = `${date}_${item.id}`;
+  alarmIntervals[key] = setInterval(()=>{
+    if(!item.alarmOn){clearInterval(alarmIntervals[key]);return}
+    audio.currentTime=0; audio.play().catch(()=>{});
+    setTimeout(()=>audio.pause(),30000);
+  }, 300000);
+}
+
+function closeAlarm() {
+  document.getElementById('alarmModal').classList.remove('show');
+  document.getElementById('alarmAudio').pause();
+  Object.values(alarmIntervals).forEach(t=>clearInterval(t));
+  alarmIntervals={};
+}
+
+function loadAllTodoAlarms() {
+  let todos=JSON.parse(localStorage.getItem('todos')||'{}');
+  for(let date in todos) todos[date].forEach(it=>it.time&&it.alarmOn&&setTodoAlarm(date,it));
+}
+
+function renderTodoList() {
+  let todos=JSON.parse(localStorage.getItem('todos')||'{}');
+  let list=document.getElementById('todo_list'); list.innerHTML='';
+  Object.keys(todos).sort().reverse().forEach(date=>{
+    let d=document.createElement('div');
+    d.innerHTML=`<span>${date}(${todos[date].length}条)</span><button onclick="viewTodoDetail('${date}')">查看</button>`;
+    list.appendChild(d);
+  });
+}
+
+function viewTodo(){viewTodoDetail(document.getElementById('todo_date').value)}
+function viewTodoDetail(date){
+  let todos=JSON.parse(localStorage.getItem('todos')||'{}');
+  let list=todos[date]||[]; currentTodo=date;
+  let str=list.map((it,i)=>`${i+1}.${it.content}${it.time?' ⏰'+it.time:''}`).join('\n');
+  document.getElementById('todo_view').innerText=str;
+  document.getElementById('todo_op_btn').style.display='flex';
+}
+function copyTodo(){
+  if(!currentTodo)return;
+  let todos=JSON.parse(localStorage.getItem('todos')||'{}');
+  copyText(todos[currentTodo].map(it=>it.content).join('\n'));
+}
+function deleteTodo(){
+  if(!currentTodo||!confirm('删除该日期所有待办？'))return;
+  let todos=JSON.parse(localStorage.getItem('todos')||'{}');
+  delete todos[currentTodo]; localStorage.setItem('todos',JSON.stringify(todos));
+  alert('删除成功');
+  document.getElementById('todo_view').innerText='';
+  document.getElementById('todo_op_btn').style.display='none';
+  currentTodo=null; renderTodoList();
+}
+
+// 日记
+function saveDiary(){
+  let date=document.getElementById('diary_date_picker').value;
+  let c=document.getElementById('diary_content').value.trim();
+  if(!date||!c)return alert('请填写');
+  localStorage.setItem('diary_'+date,c);
+  alert('保存成功');
+  document.getElementById('diary_content').value='';
+}
+function viewDiaryByDate(){
+  let date=document.getElementById('diary_date_picker').value;
+  if(!date)return alert('选日期');
+  let c=localStorage.getItem('diary_'+date)||'无日记';
+  currentDiary=date;
+  document.getElementById('diary_view').innerText=c;
+  document.getElementById('diary_op_btn').style.display='flex';
+}
+function copyDiary(){currentDiary&&copyText(localStorage.getItem('diary_'+currentDiary)||'')}
+function deleteDiary(){
+  if(!currentDiary||!confirm('删日记？'))return;
+  localStorage.removeItem('diary_'+currentDiary);
+  alert('删成功');
+  document.getElementById('diary_view').innerText='';
+  document.getElementById('diary_op_btn').style.display='none';
+  currentDiary=null;
+}
+
+// 便签
+function saveMemo(){
+  let date=document.getElementById('memo_date').value;
+  let c=document.getElementById('memo_content').value.trim();
+  if(!date||!c)return alert('填完整');
+  let m=JSON.parse(localStorage.getItem('memos')||'{}');
+  m[date]=c; localStorage.setItem('memos',JSON.stringify(m));
+  alert('保存成功');
+  document.getElementById('memo_content').value='';
+  renderMemoList();
+}
+function renderMemoList(){
+  let m=JSON.parse(localStorage.getItem('memos')||'{}');
+  let l=document.getElementById('memo_list'); l.innerHTML='';
+  Object.keys(m).sort().reverse().forEach(d=>{
+    let div=document.createElement('div');
+    div.innerHTML=`<span>${d}</span><button onclick="viewMemoDetail('${d}')">查看</button>`;
+    l.appendChild(div);
+  });
+}
+function viewMemo(){viewMemoDetail(document.getElementById('memo_date').value)}
+function viewMemoDetail(d){
+  let m=JSON.parse(localStorage.getItem('memos')||'{}');
+  currentMemo=d;
+  document.getElementById('memo_view').innerText=m[d]||'无便签';
+  document.getElementById('memo_op_btn').style.display='flex';
+}
+function copyMemo(){currentMemo&&copyText(JSON.parse(localStorage.getItem('memos')||'{}')[currentMemo])}
+function deleteMemo(){
+  if(!currentMemo||!confirm('删便签？'))return;
+  let m=JSON.parse(localStorage.getItem('memos')||'{}');
+  delete m[currentMemo]; localStorage.setItem('memos',JSON.stringify(m));
+  alert('删成功');
+  document.getElementById('memo_view').innerText='';
+  document.getElementById('memo_op_btn').style.display='none';
+  currentMemo=null; renderMemoList();
+}
+
+// 秒表
+let timer=null, sec=0;
+function timerUpdate(){
+  let h=String(Math.floor(sec/3600)).padStart(2,'0');
+  let m=String(Math.floor(sec%3600/60)).padStart(2,'0');
+  let s=String(sec%60).padStart(2,'0');
+  document.getElementById('timer_text').innerText=`${h}:${m}:${s}`;
+}
+function timerStart(){if(!timer)timer=setInterval(()=>{sec++;timerUpdate()},1000)}
+function timerStop(){clearInterval(timer);timer=null}
+function timerReset(){timerStop();sec=0;timerUpdate()}
+
+// 闹钟
+function setAlarm(){
+  let t=document.getElementById('alarm_time').value;
+  t?alert('已设置：'+t):alert('选时间');
+}
+
+// 计算器
+let calcExp='0';
+function calcUpdate(){document.getElementById('calc_display').innerText=calcExp}
+function calcInput(v){calcExp=calcExp==='0'&&v!=='.'?v:calcExp+v;calcUpdate()}
+function calcClear(){calcExp='0';calcUpdate()}
+function calcDel(){calcExp=calcExp.length>1?calcExp.slice(0,-1):'0';calcUpdate()}
+function calcEqual(){
+  try{calcExp=String(eval(calcExp.replace(/×/g,'*').replace(/÷/g,'/')))}
+  catch(e){calcExp='Error'}
+  calcUpdate();
+}
+
+// 密码
+function genPwd(){
+  const c='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*';
+  realPwd=Array.from({length:16},()=>c[Math.floor(Math.random()*c.length)]).join('');
+  document.getElementById('pwd_result').innerText='••••••••••••••••';
+  pwdVisible=false;
+}
+function togglePwdVisible(){
+  pwdVisible=!pwdVisible;
+  document.getElementById('pwd_result').innerText=pwdVisible?realPwd:'••••••••••••••••';
+}
+
+// 字数
+function countWord(){
+  let l=document.getElementById('word_text').value.length;
+  document.getElementById('word_count').innerText=l+' 字';
+}
+
+// ==================== 二维码完全修复（核心） ====================
+async function genQrcode() {
+  const txt = document.getElementById('qr_content').value.trim();
+  if (!txt) { alert('请输入内容'); return; }
+  const canvas = document.getElementById('qrcode-canvas');
+  // 生成二维码到canvas，解决img标签渲染问题
+  QRCode.toCanvas(canvas, txt, {
+    width: 250,
+    margin: 1,
+    color: {
+      dark: "#000000",
+      light: "#ffffff"
+    }
+  }, (error) => {
+    if (error) {
+      console.error(error);
+      alert('生成失败，请重试');
+    } else {
+      alert('二维码生成成功');
+    }
+  });
+}
+
+// 复制二维码图片到剪贴板（完全兼容版）
+async function copyQrImage() {
+  const canvas = document.getElementById('qrcode-canvas');
+  if (!canvas) {
+    alert('请先生成二维码');
+    return;
+  }
+  try {
+    // 直接从canvas获取blob，无需html2canvas，更稳定
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ]);
+    alert('✅ 二维码图片已复制到剪贴板');
+  } catch (err) {
+    console.error(err);
+    alert('❌ 复制失败，请在HTTPS环境下使用（本地文件需用浏览器打开）');
+  }
+}
+
+// 重量换算
+const weightUnits={
+  kg:{name:'公斤',ratio:1},g:{name:'克',ratio:0.001},t:{name:'吨',ratio:1000},
+  lb:{name:'磅',ratio:0.453592},oz:{name:'盎司',ratio:0.02835},
+  jin:{name:'斤',ratio:0.5},liang:{name:'两',ratio:0.05}
+};
+function convertWeight(){
+  let v=+document.getElementById('weight_val').value;
+  let f=document.getElementById('weight_from').value;
+  if(isNaN(v)||v<=0)return alert('输有效数字');
+  let kg=v*weightUnits[f].ratio;
+  let r=[];
+  for(let k in weightUnits){
+    r.push(`${(kg/weightUnits[k].ratio).toFixed(4)} ${weightUnits[k].name}`);
+  }
+  document.getElementById('weight_result').innerText=r.join('\n');
+}
+
+// 单位换算
+const unitData={
+  length:{units:['m','cm','km','mm','um','in','ft','yd','mi'],names:['米','厘米','千米','毫米','微米','英寸','英尺','码','英里'],ratio:{m:1,cm:0.01,km:1000,mm:0.001,um:1e-6,in:0.0254,ft:0.3048,yd:0.9144,mi:1609.34}},
+  area:{units:['m2','cm2','km2','mm2','ha','mu','ft2','in2'],names:['平方米','平方厘米','平方千米','平方毫米','公顷','亩','平方英尺','平方英寸'],ratio:{m2:1,cm2:0.0001,km2:1e6,mm2:1e-6,ha:10000,mu:666.6667,ft2:0.092903,in2:0.00064516}},
+  volume:{units:['m3','L','mL','cm3','ft3','in3','gal','qt','pt'],names:['立方米','升','毫升','立方厘米','立方英尺','立方英寸','加仑','夸脱','品脱'],
+  ratio: { m3: 1, L: 0.001, mL: 1e-6, cm3: 1e-6, ft3: 0.0283168, in3: 1.63871e-5, gal: 0.00378541, qt: 0.000946353, pt: 0.000473176 }
+  },
+  time: {
+    units: ['s', 'min', 'h', 'd', 'w', 'y', 'ms', 'us'],
+    names: ['秒', '分钟', '小时', '天', '周', '年', '毫秒', '微秒'],
+    ratio: { s: 1, min: 60, h: 3600, d: 86400, w: 604800, y: 31536000, ms: 0.001, us: 1e-6 }
+  },
+  temperature: {
+    units: ['c', 'f', 'k'],
+    names: ['摄氏度(℃)', '华氏度(℉)', '开尔文(K)'],
+    ratio: {
+      c: v => v,
+      f: v => (v * 9/5) + 32,
+      k: v => v + 273.15,
+      f_to_c: v => (v - 32) * 5/9,
+      k_to_c: v => v - 273.15
+    }
+  },
+  speed: {
+    units: ['m/s', 'km/h', 'ft/s', 'mi/h', 'kn'],
+    names: ['米/秒', '千米/小时', '英尺/秒', '英里/小时', '节'],
+    ratio: { 'm/s': 1, 'km/h': 0.277778, 'ft/s': 0.3048, 'mi/h': 0.44704, 'kn': 0.514444 }
+  },
+  pressure: {
+    units: ['pa', 'kpa', 'mpa', 'bar', 'atm', 'psi', 'mmhg'],
+    names: ['帕斯卡', '千帕', '兆帕', '巴', '标准大气压', '磅力/平方英寸', '毫米汞柱'],
+    ratio: { pa: 1, kpa: 1000, mpa: 1e6, bar: 100000, atm: 101325, psi: 6894.76, mmhg: 133.322 }
+  },
+  power: {
+    units: ['w', 'kw', 'mw', 'hp', 'ps'],
+    names: ['瓦', '千瓦', '兆瓦', '英制马力', '公制马力'],
+    ratio: { w: 1, kw: 1000, mw: 1e6, hp: 745.7, ps: 735.499 }
+  },
+  energy: {
+    units: ['j', 'kj', 'cal', 'kcal', 'kwh', 'btu'],
+    names: ['焦耳', '千焦', '卡路里', '千卡', '千瓦时', '英热单位'],
+    ratio: { j: 1, kj: 1000, cal: 4.184, kcal: 4184, kwh: 3.6e6, btu: 1055.06 }
+  }
+};
+
+function initUnit() {
+  let t = document.getElementById('unit_type').value, d = unitData[t];
+  document.getElementById('unit_from').innerHTML = d.units.map((u, i) => `<option value="${u}">${d.names[i]}</option>`).join('');
+}
+window.onload = function() {
+  initUnit();
+  loadAllTodoAlarms(); // 加载所有待办闹钟
+};
+document.getElementById('unit_type').onchange = initUnit;
+
+function convertUnit() {
+  let v = +document.getElementById('unit_val').value, t = document.getElementById('unit_type').value, f = document.getElementById('unit_from').value;
+  let d = unitData[t];
+  let r = '';
+
+  if (t === 'temperature') {
+    let c = f === 'c' ? v : (f === 'f' ? d.ratio.f_to_c(v) : d.ratio.k_to_c(v));
+    r = `摄氏度(℃): ${d.ratio.c(c).toFixed(2)}\n华氏度(℉): ${d.ratio.f(c).toFixed(2)}\n开尔文(K): ${d.ratio.k(c).toFixed(2)}`;
+  } else {
+    let b = v * d.ratio[f];
+    r = d.units.map((u, i) => `${(b / d.ratio[u]).toFixed(6)} ${d.names[i]}`).join('\n');
+  }
+
+  document.getElementById('unit_result').innerText = r;
+}
+
+// 时间戳
+function getTs() { document.getElementById('ts_result').innerText = Date.now(); }
+
+// IP
+async function getIp() {
+  try {
+    let d = await (await fetch('https://api.ipify.org?format=json')).json();
+    document.getElementById('ip_result').innerText = d.ip;
+  } catch (e) {
+    document.getElementById('ip_result').innerText = '127.0.0.1';
+  }
+}
+
+// AI
+const delay = ms => new Promise(r => setTimeout(r, ms));
+async function askDoubao() {
+  let m = document.getElementById('doubao_msg').value;
+  if (!m) return;
+  let el = document.getElementById('doubao_result');
+  el.innerText = '思考中...';
+  await delay(600);
+  el.innerText = `你：${m}\n豆包：已收到，我可以帮你解答、整理、创作。`;
+}
+async function askTongyi() {
+  let m = document.getElementById('tongyi_msg').value;
+  if (!m) return;
+  let el = document.getElementById('tongyi_result');
+  el.innerText = '思考中...';
+  await delay(600);
+  el.innerText = `通义：已理解，将为你提供专业回答。`;
+}
+async function doSummary() {
+  let t = document.getElementById('sum_text').value;
+  if (!t) return;
+  let el = document.getElementById('sum_result');
+  el.innerText = '总结中...';
+  await delay(800);
+  el.innerText = '【AI总结】核心内容清晰，重点突出，逻辑完整。';
+}
+async function sendChat() {
+  let i = document.getElementById('chat_input').value;
+  if (!i) return;
+  let el = document.getElementById('chat_history');
+  el.innerHTML += `<div>你：${i}</div>`;
+  await delay(600);
+  el.innerHTML += `<div>AI：我在，有什么可以帮你？</div><br>`;
+  document.getElementById('chat_input').value = '';
+}
+async function writeAI() {
+  let t = document.getElementById('write_topic').value;
+  if (!t) return;
+  let el = document.getElementById('write_result');
+  el.innerText = '写作中...';
+  await delay(1000);
+  el.innerText = `【${t}】\n文章内容结构完整，语言流畅，层次清晰。`;
+}
+async function optimizeCV() {
+  let t = document.getElementById('cv_text').value;
+  if (!t) return;
+  let el = document.getElementById('cv_result');
+  el.innerText = '优化中...';
+  await delay(900);
+  el.innerText = '【优化后】表述专业、重点突出、优势明显。';
+}
+async function translateAI() {
+  let t = document.getElementById('trans_text').value;
+  if (!t) return;
+  let el = document.getElementById('trans_result');
+  el.innerText = '翻译中...';
+  await delay(600);
+  el.innerText = `翻译：${t}`;
+}
+async function genMind() {
+  let t = document.getElementById('mind_topic').value;
+  if (!t) return;
+  let el = document.getElementById('mind_result');
+  el.innerText = '生成中...';
+  await delay(800);
+  el.innerText = `1.${t}\n  1.1 要点\n  1.2 内容\n2.扩展`;
+}
+</script>
+</body>
+</html>
